@@ -1,0 +1,8 @@
+/server/node_modules/*
+/driver/.tmp_versions/*
+*.swp
+*.ko
+*.cmd
+*.mod.*
+*.symvers
+

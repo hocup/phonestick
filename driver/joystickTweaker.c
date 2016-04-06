@@ -1,0 +1,140 @@
+/* A simple module that creates a proc file
+ * and tweaks the mouse a bit when the character 'a' is written to it
+ * Tweaking stops when any other character is written
+ */
+
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/proc_fs.h>
+#include <linux/input.h>
+
+#define PROCFS_NAME "phonestick"
+
+struct input_dev *tweaker_dev;
+static struct proc_dir_entry *myProcFile;
+static int tweakingOn = 0;
+int tweakState = 0;
+
+/* The function that gets called repeatedly when tweaking */
+void tweak(unsigned long unused){
+  /* move in a small square 
+  if(tweakState < 30){
+    input_report_rel(tweaker_dev, REL_X, 5);
+  } else if(tweakState < 60){
+    input_report_rel(tweaker_dev, REL_Y, 5); 
+  } else if(tweakState < 90){
+    input_report_rel(tweaker_dev, REL_X, -5);
+  } else {
+    input_report_rel(tweaker_dev, REL_Y, -5);
+  }
+
+  input_sync(tweaker_dev);
+
+  if((tweakState++) >= 120){
+    tweakState = 0;
+  }
+  */
+
+  if(tweakingOn){
+    //input_report_abs(tweaker_dev, ABS_X, 120);
+  } else {
+    //input_report_abs(tweaker_dev, ABS_X, 0);
+  }
+
+  input_sync(tweaker_dev);
+
+  /* Cycle back to this function to update joystick state */
+  mod_timer(&(tweaker_dev->timer), jiffies + HZ/50);
+}
+
+/* The function called when the proc file is read */
+int pf_read(char *buffer, 
+            char **buffer_loaction, 
+            off_t offset, 
+            int buffer_length, int *eof, void *data){
+  printk(KERN_INFO "Procfile read (/proc/%s), nothing happens.\n", PROCFS_NAME);
+  return 0;
+}
+
+/* The function called when the proc file is written */
+int pf_write(struct file *file, const char *buffer, unsigned long count,
+              void *data){
+  printk(KERN_INFO "Procfile write (/proc/%s)\n", PROCFS_NAME);
+
+  if(tweakingOn == 1){
+    printk(KERN_INFO "Mouse currently tweaking\n");
+  } else {
+    printk(KERN_INFO "Mouse currently not tweaking\n");
+  }
+
+  if(buffer[0] == 'a'){
+    printk(KERN_INFO "Procfile recieved 'a' char\n");
+    tweakingOn = 1;
+    input_report_abs(tweaker_dev, ABS_X, 120);
+    mod_timer(&(tweaker_dev->timer), jiffies + HZ/50);
+  } else {
+    printk(KERN_INFO "Procfile recieved non-'a' char\n");
+    input_report_abs(tweaker_dev, ABS_X, 0);
+    tweakingOn = 0;
+  }
+  
+  return count;
+}
+
+/* This struct sets the operations of out file to the above functions */
+static const struct file_operations proc_fops = {
+  .owner = THIS_MODULE,
+  .read = pf_read,
+  .write = pf_write
+};
+
+int init_module(){
+  myProcFile = proc_create(PROCFS_NAME, 0666, NULL, &proc_fops);
+
+  if(myProcFile == NULL){
+    remove_proc_entry(PROCFS_NAME, NULL);
+    printk(KERN_ALERT "Error: could not initialize /proc/%s\n", PROCFS_NAME);
+    return -ENOMEM;
+  }
+  printk(KERN_INFO "/proc/%s created \n", PROCFS_NAME);
+  /*  Input initialization */
+  tweaker_dev = input_allocate_device();
+
+  /* set up descriptive labels */
+  tweaker_dev->name = "Phonestick";
+  /* phys is a unique name on a running system */
+  tweaker_dev->phys = "A/Fake/Path";
+  tweaker_dev->id.bustype = BUS_HOST;
+  tweaker_dev->id.vendor = 0x0001;
+  tweaker_dev->id.product = 0x0001;
+  tweaker_dev->id.version = 0x0100;
+
+  /* Two absolute axes */
+  set_bit(EV_ABS, tweaker_dev->evbit);
+  set_bit(ABS_X, tweaker_dev->absbit);
+  set_bit(ABS_Y, tweaker_dev->absbit);
+
+  input_set_abs_params(tweaker_dev, ABS_X, 0,124,0,10);
+
+  /* need a button too */
+  set_bit(EV_KEY, tweaker_dev->evbit);
+  set_bit(BTN_JOYSTICK, tweaker_dev->keybit);
+
+  /* Register with input core */
+  input_register_device(tweaker_dev);
+
+  /* Set up a repeating timer */
+  init_timer(&(tweaker_dev->timer));
+  tweaker_dev->timer.function = tweak;
+  tweaker_dev->timer.expires = jiffies + HZ/10;
+  add_timer(&(tweaker_dev->timer));
+
+  return 0;
+}
+
+void cleanup_module(){
+  remove_proc_entry(PROCFS_NAME, NULL);
+  del_timer_sync(&(tweaker_dev->timer));
+  input_unregister_device(tweaker_dev);
+  printk(KERN_INFO "/proc/%s removed\n", PROCFS_NAME);
+}

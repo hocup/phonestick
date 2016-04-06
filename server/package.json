@@ -1,0 +1,16 @@
+{
+  "name": "android-stick-server",
+  "version": "1.0.0",
+  "description": "A simple server to pass data from web to a driver that messes with the linux input core",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.13.4",
+    "jquery": "^2.2.2",
+    "socket.io": "^1.4.5"
+  }
+}
