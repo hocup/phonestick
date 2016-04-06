@@ -1,5 +1,5 @@
 /* A simple module that creates a proc file
- * and tweaks the mouse a bit when the character 'a' is written to it
+ * and tweaks the joystick a bit when the character 'a' is written to it
  * Tweaking stops when any other character is written
  */
 
@@ -59,7 +59,8 @@ int pf_read(char *buffer,
 /* The function called when the proc file is written */
 int pf_write(struct file *file, const char *buffer, unsigned long count,
               void *data){
-  printk(KERN_INFO "Procfile write (/proc/%s)\n", PROCFS_NAME);
+  //int testParse = __bitmap_parse(buffer, count, 0, 
+  printk(KERN_INFO "Procfile write (/proc/%s) %d chars written\n", PROCFS_NAME, count);
 
   if(tweakingOn == 1){
     printk(KERN_INFO "Mouse currently tweaking\n");

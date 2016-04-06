@@ -1,7 +1,9 @@
 /server/node_modules/*
 /driver/.tmp_versions/*
+*.order
 *.swp
 *.ko
+*.o
 *.cmd
 *.mod.*
 *.symvers
