@@ -5,7 +5,7 @@ var io = require('socket.io')(http);
 
 var fs = require('fs');
 
-fs.writeFile("/proc/phonestick", "a", function (err) {
+fs.writeFile("/proc/phonestick", "34\0", function (err) {
   if(err) {
     return console.log("error: ", err);
   }

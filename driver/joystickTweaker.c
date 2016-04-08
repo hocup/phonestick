@@ -59,8 +59,11 @@ int pf_read(char *buffer,
 /* The function called when the proc file is written */
 int pf_write(struct file *file, const char *buffer, unsigned long count,
               void *data){
-  //int testParse = __bitmap_parse(buffer, count, 0, 
-  printk(KERN_INFO "Procfile write (/proc/%s) %d chars written\n", PROCFS_NAME, count);
+  int testParse = 0;
+  kstrtoint(buffer, 10, &testParse); 
+  printk(KERN_INFO "Procfile write (/proc/%s) %d chars written %d (%s) \n", PROCFS_NAME, count, testParse, buffer);
+  
+  
 
   if(tweakingOn == 1){
     printk(KERN_INFO "Mouse currently tweaking\n");
