@@ -13,9 +13,6 @@ fs.writeFile("/proc/phonestick", "34\0", function (err) {
 });
 
 app.use('/',express.static('frontend'));
-//app.get('/', function(req, res) {
-//  res.sendfile('frontend/index.html');
-//});
 
 http.listen(3000, function() {
   console.log('Server listening on port 3000');
@@ -29,12 +26,16 @@ io.on('connection', function(socket) {
 
   socket.on('jsmessage', function(msg) {
     console.log("Recieved a joystick message from client: ", msg);
-    if(msg > 90) {
-      console.log("writing a");
-      fs.writeFile("/proc/phonestick","a",function(err){});
-    } else {
-      console.log("writing b");
-      fs.writeFile("/proc/phonestick","b",function(err){});
-    } 
+
+    if(msg.x != -1) {
+      setAxis("x", msg.x);
+    }
+    if(msg.y != -1) {
+      setAxis("y", msg.y);
+    }
   });
 });
+
+function setAxis(axis, value) {
+  fs.writeFile("/proc/phonestick", axis + value.toString(16) + "\0", function (err) {});
+}

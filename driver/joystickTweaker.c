@@ -27,20 +27,7 @@ void tweak(unsigned long unused){
   } else {
     input_report_rel(tweaker_dev, REL_Y, -5);
   }
-
-  input_sync(tweaker_dev);
-
-  if((tweakState++) >= 120){
-    tweakState = 0;
-  }
-  */
-
-  if(tweakingOn){
-    //input_report_abs(tweaker_dev, ABS_X, 120);
-  } else {
-    //input_report_abs(tweaker_dev, ABS_X, 0);
-  }
-
+*/
   input_sync(tweaker_dev);
 
   /* Cycle back to this function to update joystick state */
@@ -60,26 +47,21 @@ int pf_read(char *buffer,
 int pf_write(struct file *file, const char *buffer, unsigned long count,
               void *data){
   int testParse = 0;
-  kstrtoint(buffer, 10, &testParse); 
+  kstrtoint(buffer, 16, &testParse); 
   printk(KERN_INFO "Procfile write (/proc/%s) %d chars written %d (%s) \n", PROCFS_NAME, count, testParse, buffer);
   
-  
+  int val = 0;
 
-  if(tweakingOn == 1){
-    printk(KERN_INFO "Mouse currently tweaking\n");
-  } else {
-    printk(KERN_INFO "Mouse currently not tweaking\n");
-  }
-
-  if(buffer[0] == 'a'){
-    printk(KERN_INFO "Procfile recieved 'a' char\n");
-    tweakingOn = 1;
-    input_report_abs(tweaker_dev, ABS_X, 120);
+  if(buffer[0] == 'x'){
+    kstrtoint(buffer + 1, 16, &val);
+    printk(KERN_INFO "Procfile recieved 'x' char %d\n", val); 
+    input_report_abs(tweaker_dev, ABS_X, val);
     mod_timer(&(tweaker_dev->timer), jiffies + HZ/50);
-  } else {
-    printk(KERN_INFO "Procfile recieved non-'a' char\n");
-    input_report_abs(tweaker_dev, ABS_X, 0);
-    tweakingOn = 0;
+  } else if(buffer[0] == 'y') {
+    kstrtoint(buffer + 1, 16, &val);
+    printk(KERN_INFO "Procfile recieved 'y' char %d\n", val); 
+    input_report_abs(tweaker_dev, ABS_Y, val);
+    mod_timer(&(tweaker_dev->timer), jiffies + HZ/50);
   }
   
   return count;
@@ -118,7 +100,8 @@ int init_module(){
   set_bit(ABS_X, tweaker_dev->absbit);
   set_bit(ABS_Y, tweaker_dev->absbit);
 
-  input_set_abs_params(tweaker_dev, ABS_X, 0,124,0,10);
+  input_set_abs_params(tweaker_dev, ABS_X, 0,65535,0,10);
+  input_set_abs_params(tweaker_dev, ABS_Y, 0,65535,0,10);
 
   /* need a button too */
   set_bit(EV_KEY, tweaker_dev->evbit);
