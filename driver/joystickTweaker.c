@@ -35,17 +35,14 @@ void tweak(unsigned long unused){
 }
 
 /* The function called when the proc file is read */
-int pf_read(char *buffer, 
-            char **buffer_loaction, 
-            off_t offset, 
-            int buffer_length, int *eof, void *data){
+ssize_t pf_read(struct file *file, char __user *user, size_t count, loff_t *data){
   printk(KERN_INFO "Procfile read (/proc/%s), nothing happens.\n", PROCFS_NAME);
   return 0;
 }
 
 /* The function called when the proc file is written */
-int pf_write(struct file *file, const char *buffer, unsigned long count,
-              void *data){
+ssize_t pf_write(struct file *file, const char *buffer, size_t count,
+              loff_t *data){
   int testParse = 0;
   kstrtoint(buffer, 16, &testParse); 
   printk(KERN_INFO "Procfile write (/proc/%s) %d chars written %d (%s) \n", PROCFS_NAME, count, testParse, buffer);
