@@ -5,6 +5,7 @@
 
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/timer.h>
 #include <linux/proc_fs.h>
 #include <linux/input.h>
 
@@ -12,11 +13,12 @@
 
 struct input_dev *tweaker_dev;
 static struct proc_dir_entry *myProcFile;
-static int tweakingOn = 0;
+// static int tweakingOn = 0;
 int tweakState = 0;
 
 /* The function that gets called repeatedly when tweaking */
-void tweak(unsigned long unused){
+void tweak(struct timer_list *unused){
+  int ret;
   /* move in a small square 
   if(tweakState < 30){
     input_report_rel(tweaker_dev, REL_X, 5);
@@ -31,7 +33,8 @@ void tweak(unsigned long unused){
   input_sync(tweaker_dev);
 
   /* Cycle back to this function to update joystick state */
-  mod_timer(&(tweaker_dev->timer), jiffies + HZ/50);
+  ret = mod_timer(&(tweaker_dev->timer), jiffies + HZ/50);
+  if (ret) printk("Error in mod_timer\n");
 }
 
 /* The function called when the proc file is read */
@@ -72,6 +75,8 @@ static const struct file_operations proc_fops = {
 };
 
 int init_module(){
+  int ret;
+
   myProcFile = proc_create(PROCFS_NAME, 0666, NULL, &proc_fops);
 
   if(myProcFile == NULL){
@@ -108,17 +113,21 @@ int init_module(){
   input_register_device(tweaker_dev);
 
   /* Set up a repeating timer */
-  init_timer(&(tweaker_dev->timer));
-  tweaker_dev->timer.function = tweak;
-  tweaker_dev->timer.expires = jiffies + HZ/10;
-  add_timer(&(tweaker_dev->timer));
+  timer_setup(&(tweaker_dev->timer), tweak, 0);
+  ret = mod_timer( &(tweaker_dev->timer), jiffies + HZ/10);
+  if (ret) printk("Error in mod_timer\n");
+
 
   return 0;
 }
 
 void cleanup_module(){
+  int ret;
+
   remove_proc_entry(PROCFS_NAME, NULL);
-  del_timer_sync(&(tweaker_dev->timer));
+ 
+  ret = del_timer( &(tweaker_dev->timer) );
+  if (ret) printk("The timer is still in use...\n");
   input_unregister_device(tweaker_dev);
   printk(KERN_INFO "/proc/%s removed\n", PROCFS_NAME);
 }
