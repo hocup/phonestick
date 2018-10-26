@@ -5,37 +5,25 @@
 
 #include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/timer.h>
 #include <linux/proc_fs.h>
 #include <linux/input.h>
 
 #define PROCFS_NAME "phonestick"
+
+
+
 
 struct input_dev *tweaker_dev;
 static struct proc_dir_entry *myProcFile;
 // static int tweakingOn = 0;
 int tweakState = 0;
 
-/* The function that gets called repeatedly when tweaking */
-void tweak(struct timer_list *unused){
-  int ret;
-  /* move in a small square 
-  if(tweakState < 30){
-    input_report_rel(tweaker_dev, REL_X, 5);
-  } else if(tweakState < 60){
-    input_report_rel(tweaker_dev, REL_Y, 5); 
-  } else if(tweakState < 90){
-    input_report_rel(tweaker_dev, REL_X, -5);
-  } else {
-    input_report_rel(tweaker_dev, REL_Y, -5);
-  }
-*/
-  input_sync(tweaker_dev);
+struct AxisDef {
+  char key;
+  int axis;
+};
 
-  /* Cycle back to this function to update joystick state */
-  ret = mod_timer(&(tweaker_dev->timer), jiffies + HZ/50);
-  if (ret) printk("Error in mod_timer\n");
-}
+struct AxisDef axes[6];
 
 /* The function called when the proc file is read */
 ssize_t pf_read(struct file *file, char __user *user, size_t count, loff_t *data){
@@ -47,22 +35,24 @@ ssize_t pf_read(struct file *file, char __user *user, size_t count, loff_t *data
 ssize_t pf_write(struct file *file, const char *buffer, size_t count,
               loff_t *data){
   int testParse = 0;
-  kstrtoint(buffer, 16, &testParse); 
-  printk(KERN_INFO "Procfile write (/proc/%s) %d chars written %d (%s) \n", PROCFS_NAME, count, testParse, buffer);
-  
-  int val = 0;
+  int ret;
+  int val;
 
-  if(buffer[0] == 'x'){
-    kstrtoint(buffer + 1, 16, &val);
-    printk(KERN_INFO "Procfile recieved 'x' char %d\n", val); 
-    input_report_abs(tweaker_dev, ABS_X, val);
-    mod_timer(&(tweaker_dev->timer), jiffies + HZ/50);
-  } else if(buffer[0] == 'y') {
-    kstrtoint(buffer + 1, 16, &val);
-    printk(KERN_INFO "Procfile recieved 'y' char %d\n", val); 
-    input_report_abs(tweaker_dev, ABS_Y, val);
-    mod_timer(&(tweaker_dev->timer), jiffies + HZ/50);
+  ret = kstrtoint(buffer, 16, &testParse); 
+  if(ret) printk(KERN_INFO "Issues Parsins %d\n", ret);
+  
+  printk(KERN_INFO "Procfile write (/proc/%s) %d chars written %d (%s) \n", PROCFS_NAME, count, testParse, buffer);
+
+  int i;
+  for(i = 0; i < 6; i++) {
+    if(buffer[0] == axes[i].key) {
+      ret = kstrtoint(buffer + 1, 16, &val);
+      if(ret) printk(KERN_INFO "Issues parsing int from string %d\n", ret);
+      input_report_abs(tweaker_dev, axes[i].axis, val);
+    }
   }
+
+  input_sync(tweaker_dev);
   
   return count;
 }
@@ -76,6 +66,19 @@ static const struct file_operations proc_fops = {
 
 int init_module(){
   int ret;
+
+  axes[0].key = 'x';
+  axes[0].axis = ABS_X;
+  axes[1].key = 'y';
+  axes[1].axis = ABS_Y;
+  axes[2].key = 'z';
+  axes[2].axis = ABS_Z;
+  axes[3].key = 'r';
+  axes[3].axis = ABS_RY;
+  axes[4].key = 'p';
+  axes[4].axis = ABS_RX;
+  axes[5].key = 't';
+  axes[5].axis = ABS_RZ;
 
   myProcFile = proc_create(PROCFS_NAME, 0666, NULL, &proc_fops);
 
@@ -97,26 +100,21 @@ int init_module(){
   tweaker_dev->id.product = 0x0001;
   tweaker_dev->id.version = 0x0100;
 
-  /* Two absolute axes */
+  /* set up absolute axes */
   set_bit(EV_ABS, tweaker_dev->evbit);
-  set_bit(ABS_X, tweaker_dev->absbit);
-  set_bit(ABS_Y, tweaker_dev->absbit);
-
-  input_set_abs_params(tweaker_dev, ABS_X, 0,65535,0,10);
-  input_set_abs_params(tweaker_dev, ABS_Y, 0,65535,0,10);
+  int i;
+  for(i = 0; i < 6; i++) {
+    set_bit(axes[i].axis, tweaker_dev->evbit);
+    input_set_abs_params(tweaker_dev, axes[i].axis, 0, 65535, 0, 10);
+  }
 
   /* need a button too */
   set_bit(EV_KEY, tweaker_dev->evbit);
   set_bit(BTN_JOYSTICK, tweaker_dev->keybit);
 
   /* Register with input core */
-  input_register_device(tweaker_dev);
-
-  /* Set up a repeating timer */
-  timer_setup(&(tweaker_dev->timer), tweak, 0);
-  ret = mod_timer( &(tweaker_dev->timer), jiffies + HZ/10);
-  if (ret) printk("Error in mod_timer\n");
-
+  ret = input_register_device(tweaker_dev);
+  if(ret) printk("Error registering input device\n");
 
   return 0;
 }

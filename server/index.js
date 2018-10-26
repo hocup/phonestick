@@ -1,11 +1,14 @@
-var express =require('express');
-var app = express();
-var http = require('http').Server(app);
-var io = require('socket.io')(http);
+const express =require('express');
+const app = express();
+const http = require('http').Server(app);
+const io = require('socket.io')(http);
 
-var fs = require('fs');
+const fs = require('fs');
 
-fs.writeFile("/proc/phonestick", "34\0", function (err) {
+const PROC_FILE_PATH = "/proc/phonestick";
+const ALLOWED_AXES = ['x', 'y', 'z', 'r', 'p', 't'];
+
+fs.writeFile(PROC_FILE_PATH, "34\0", function (err) {
   if(err) {
     return console.log("error: ", err);
   }
@@ -27,15 +30,25 @@ io.on('connection', function(socket) {
   socket.on('jsmessage', function(msg) {
     console.log("Recieved a joystick message from client: ", msg);
 
-    if(msg.x != -1) {
-      setAxis("x", msg.x);
-    }
-    if(msg.y != -1) {
-      setAxis("y", msg.y);
-    }
+    // if(msg.x != -1) {
+    //   setAxis("x", msg.x);
+    // }
+    // if(msg.y != -1) {
+    //   setAxis("y", msg.y);
+    // }
+
+    Object.keys(msg).map(
+      (axis) => {
+        
+        if(ALLOWED_AXES.find((a) => {return axis === a}) && msg[axis] !== -1) {
+          setAxis(axis, Math.floor(msg[axis]));
+        }
+      }
+    );
   });
 });
 
 function setAxis(axis, value) {
-  fs.writeFile("/proc/phonestick", axis + value.toString(16) + "\0", function (err) {});
+  console.log("setting axis " + axis + " " + value.toString(16));
+  fs.writeFile(PROC_FILE_PATH, axis + value.toString(16) + "\0", function (err) {});
 }

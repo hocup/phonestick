@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Front End For Joystick</title>
+    <script src="https://code.jquery.com/jquery-1.12.2.min.js"></script>
+    <script src="../socket.io/socket.io.js"></script>
+    <script src="./main.js"></script>
+
+    <script type="text/javascript" src="lib/three.js"></script> 
+
+    <script type="text/javascript" src="js-aruco/svd.js"></script> 
+    <script type="text/javascript" src="js-aruco/posit1.js"></script> 
+    <script type="text/javascript" src="js-aruco/cv.js"></script> 
+    <script type="text/javascript" src="js-aruco/aruco.js"></script> 
+  </head>
+  <body style="text-align: center;">
+
+    <video id="video" width=320 height=240 autoplay="true" style="display:none;"></video>
+    
+    <div style="margin: 10px;"><strong>-= Augmented Reality =-</strong></div>
+    <div style="width: 100%;">
+      <div style="width: 650px; margin-left:auto; margin-right:auto;">
+        <canvas id="canvas" style="width: 320px; height: 240px; float: left; border: solid 1px black;"></canvas>
+        <div id="container" style="width: 320px; height: 240px; float: left; border: solid 1px black; background: green;"></div>
+        <div style="clear: both;"></div>
+        <div style="float: left; border: solid 1px black;">
+          <div id="container1" style="width: 320px; height: 240px; background: red;"></div>
+          <div id="pose1"></div>
+        </div>
+        <div style="float: left; border: solid 1px black;">
+          <div id="container2" style="width: 320px; height: 240px; background: blue;"></div>
+          <div id="pose2"></div>
+        </div>
+      </div>
+    </div>
+    <div style="clear: both;"></div>
+    <div style="margin: 15px;"><strong>Powered by <a href="https://github.com/jcmellado/js-aruco">js-aruco</a> and <a href="https://github.com/mrdoob/three.js">Three.js</a></strong></div>
+  
+  </body>
+</html>

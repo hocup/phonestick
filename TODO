@@ -1,0 +1,14 @@
+(A) set up a test webpage to manually set axes values +frontend
+(A) set up a bunch (at least six) buttons @main +driver
+(A) try the module without a timer at all: input_sync on proc file write +driver
+(B) figure out how button inputs work +driver
+(B) set up some validation for axes inputs +driver
+(B) set up validation that only processes input event if the input to the proc file was valid +driver
+separate the input device setup into its own function @future +driver
+separate the input device teardown into its own function @future +driver
+get rid of the "ignoring return value" warnings @cleanup +driver
+get rid of the ISO c90 warning @cleanup +driver
+figure out how to set up axis based on proc file input @future +driver
+
+x (A) match axis names from array @main
+x (A) set up six absolute axis @main
